@@ -1,4 +1,4 @@
-from db import db, User, Post
+from db import db, User, Post, Asset
 from flask import Flask, request
 import json
 import os
@@ -83,4 +83,22 @@ def get_saved_posts(user_id):
 # - filter by qualifications
 
 
+### Asset Routes ###
 
+@app.route("/upload/", methods=["POST"])
+def upload():
+    """
+    Endpoint for uploading an image to AWS given its base64 form,
+    then storing/returning the URL of that image
+    """
+    body = json.loads(request.data)
+    image_data = body.get("image_data")
+    if image_data is None:
+        return failure_response("No Base64 URL")
+    
+    #create new Asset object
+    asset = Asset(image_data=image_data)
+    db.session.add(asset)
+    db.session.commit()
+
+    return success_response(asset.serialize(), 201)
