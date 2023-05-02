@@ -68,6 +68,12 @@ class User(db.Model):
         """
         self.saved_posts.append(post)
     
+    def remove_post(self, post):
+        """
+        Remove post from user's list of saved posts
+        """
+        self.saved_posts.remove(post)
+    
 
 class Post(db.Model):
     """

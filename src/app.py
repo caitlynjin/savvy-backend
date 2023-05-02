@@ -31,7 +31,7 @@ def welcome():
 
 ### User Routes ###
 
-@app.route("/api/users/<int:user_id>")
+@app.route("/api/users/<int:user_id>/")
 def get_user(user_id):
     """
     This route gets a user
@@ -59,7 +59,10 @@ def create_user():
     db.session.commit()
     return success_response(user.serialize(), 201)
 
-@app.route("/api/users/saved_posts/")
+
+### Post Routes ###
+
+@app.route("/api/users/<int:user_id>/saved_posts/")
 def get_saved_posts(user_id):
     """
     This route gets all saved posts by user id
@@ -68,24 +71,38 @@ def get_saved_posts(user_id):
     if user is None:
         return failure_response("User not found")
     
-    saved_posts = user.saved_posts()
-    return success_response({"saved_posts": saved_posts})
+    saved_posts = user.serialize_saved_posts()
+    return success_response(user.saved_posts(), 200)
 
+@app.route("/api/posts/<int:post_id>/")
+def get_post_by_id(post_id):
+    """
+    Endpoint for displaying the page for a single post given its id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    return success_response(post.serialize())
 
-### Post Routes ###
-
-# - save/bookmark post
-# - unsave/unbookmark post
-# - apply with link? frontend?
-# - filter by field
-# - filter by location
-# - filter by payment
-# - filter by qualifications
-
+@app.route("/api/posts/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+def unsave_post(user_id, post_id):
+    """
+    Endpoint for unsaving a post/removing it from a user's bookmarks
+    Takes in user id and post id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    user.remove_post(post)
+    db.session.commit()
+    return success_response(user.serialize_saved_posts(), 201)
 
 ### Asset Routes ###
 
-@app.route("/upload/", methods=["POST"])
+@app.route("/api/upload/", methods=["POST"])
 def upload():
     """
     Endpoint for uploading an image to AWS given its base64 form,
