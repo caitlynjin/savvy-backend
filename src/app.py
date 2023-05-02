@@ -72,7 +72,7 @@ def get_saved_posts(user_id):
         return failure_response("User not found")
     
     saved_posts = user.serialize_saved_posts()
-    return success_response(user.saved_posts(), 200)
+    return success_response(saved_posts)
 
 @app.route("/api/posts/<int:post_id>/")
 def get_post_by_id(post_id):
