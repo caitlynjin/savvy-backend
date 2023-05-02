@@ -19,7 +19,7 @@ def success_response(body, code=200):
     return json.dumps(body), code
 
 def failure_response(msg, code=404):
-    return json.dumps({"Error": msg}), code
+    return json.dumps({"error": msg}), code
 
 @app.route("/")
 def welcome():
@@ -59,6 +59,9 @@ def create_user():
     db.session.commit()
     return success_response(user.serialize(), 201)
 
+
+### Post Routes ###
+
 @app.route("/api/users/<int:user_id>/saved_posts/")
 def get_saved_posts(user_id):
     """
@@ -68,60 +71,38 @@ def get_saved_posts(user_id):
     if user is None:
         return failure_response("User not found")
     
-    saved_posts = user.saved_posts()
-    return success_response(user.serialize_saved_posts())
+    saved_posts = user.serialize_saved_posts()
+    return success_response(saved_posts)
 
-# - save post !!
-@app.route("/api/users/<int:user_id>/save/<int:post_id>/", method=["POST"])
-def save_post(user_id, post_id):
+@app.route("/api/posts/<int:post_id>/")
+def get_post_by_id(post_id):
     """
-    Save post to bookmarked posts for this user
+    Endpoint for displaying the page for a single post given its id
     """
-    user = User.query.filer_by(id=user_id).first()
-    if user is None:
-        return failure_response("User not found")
-    
     post = Post.query.filter_by(id=post_id).first()
     if post is None:
         return failure_response("Post not found")
-    
-    user.add_post(post)
+    return success_response(post.serialize())
+
+@app.route("/api/posts/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+def unsave_post(user_id, post_id):
+    """
+    Endpoint for unsaving a post/removing it from a user's bookmarks
+    Takes in user id and post id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    user.remove_post(post)
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
 
-
-    
-# - unsave post
-
-
-### Post Routes ###
-
-# - get user posts
-# - get specific post
-# - get post link (apply) !!
-@app.route("/api/posts/<int:post_id>/link/")
-def get_post_link(post_id):
-    """
-    This route gets the post link for this post
-    """
-    post = Post.query.filter_by(id=post_id).first()
-    if post is None:
-        return failure_response("Post not found")
-    
-    link = post.get_link()
-    return success_response({"post_link": link})
-
-# - get post by field
-# - get post by location !!
-
-# - get post by payment !!
-
-# - get post by qualifications
-
-
 ### Asset Routes ###
 
-@app.route("/upload/", methods=["POST"])
+@app.route("/api/upload/", methods=["POST"])
 def upload():
     """
     Endpoint for uploading an image to AWS given its base64 form,
