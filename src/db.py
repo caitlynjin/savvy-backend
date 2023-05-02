@@ -56,11 +56,13 @@ class User(db.Model):
             "saved_posts": [post.serialize() for post in self.posts]
         }
     
-    def saved_posts(self):
+    def serialize_saved_posts(self):
         """
         Return list of saved posts
         """
-        return [post.serialize() for post in self.posts]
+        return {
+            "saved_posts": [post.serialize() for post in self.posts]
+        }
     
     def add_post(self, post):
         """
@@ -85,6 +87,7 @@ class Post(db.Model):
     ###
     wage = db.Column(db.String, nullable=False)
     how_to_apply = db.Column(db.String, nullable=False)
+    link = db.Column(db.String, nullable=False)
 
     def __init__(self, **kwargs):
         """
@@ -98,6 +101,7 @@ class Post(db.Model):
         self.qualifications = kwargs.get("qualifications", "")
         self.wage = kwargs.get("wage", "")
         self.how_to_apply = kwargs.get("how_to_apply", "")
+        self.link = kwargs.get("link", "")
 
     def serialize(self):
         """
@@ -112,8 +116,15 @@ class Post(db.Model):
             "payment": self.payment,
             "qualifications": self.qualifications,
             "wage": self.wage,
-            "how_to_apply": self.how_to_apply
+            "how_to_apply": self.how_to_apply,
+            "link": self.link
         }
+    
+    def get_link(self):
+        """
+        Returns this post's application link
+        """
+        return self.link
     
 
 class Asset(db.Model):
