@@ -32,7 +32,7 @@ def welcome():
 ### User Routes ###
 
 @app.route("/api/users/<int:user_id>/")
-def get_user(user_id):
+def get_user_by_id(user_id):
     """
     This route gets a user
     """
@@ -68,11 +68,10 @@ def get_saved_posts(user_id):
     if user is None:
         return failure_response("User not found")
     
-    saved_posts = user.saved_posts()
-    return success_response(user.serialize_saved_posts())
+    saved_posts = user.serialize_saved_posts()
+    return success_response(saved_posts)
 
-# - save post !!
-@app.route("/api/users/<int:user_id>/save/<int:post_id>/", method=["POST"])
+@app.route("/api/users/<int:user_id>/save/<int:post_id>/", methods=["POST"])
 def save_post(user_id, post_id):
     """
     Save post to bookmarked posts for this user
@@ -88,17 +87,36 @@ def save_post(user_id, post_id):
     user.add_post(post)
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
-
-
     
-# - unsave post
+@app.route("/api/posts/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+def unsave_post(user_id, post_id):
+    """
+    Endpoint for unsaving a post/removing it from a user's bookmarks
+    Takes in user id and post id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    user.remove_post(post)
+    db.session.commit()
+    return success_response(user.serialize_saved_posts(), 201)
 
 
 ### Post Routes ###
 
-# - get user posts
-# - get specific post
-# - get post link (apply) !!
+@app.route("/api/posts/<int:post_id>/")
+def get_post_by_id(post_id):
+    """
+    Endpoint for displaying the page for a single post given its id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    return success_response(post.serialize())
+
 @app.route("/api/posts/<int:post_id>/link/")
 def get_post_link(post_id):
     """
@@ -108,15 +126,12 @@ def get_post_link(post_id):
     if post is None:
         return failure_response("Post not found")
     
-    link = post.get_link()
-    return success_response({"post_link": link})
+    link = post.serialize_link()
+    return success_response(link)
 
-# - get post by field
-# - get post by location !!
 
-# - get post by payment !!
+### Filter Routes ###
 
-# - get post by qualifications
 
 
 ### Asset Routes ###

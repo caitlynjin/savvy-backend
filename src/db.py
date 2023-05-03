@@ -69,6 +69,12 @@ class User(db.Model):
         Add this post to the given user
         """
         self.saved_posts.append(post)
+
+    def remove_post(self, post):
+        """
+        Remove post from user's list of saved posts
+        """
+        self.saved_posts.remove(post)
     
 
 class Post(db.Model):
@@ -120,11 +126,13 @@ class Post(db.Model):
             "link": self.link
         }
     
-    def get_link(self):
+    def serialize_link(self):
         """
         Returns this post's application link
         """
-        return self.link
+        return {
+            "post_link": self.link
+        }
     
 
 class Asset(db.Model):
