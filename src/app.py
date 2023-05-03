@@ -32,7 +32,7 @@ def welcome():
 ### User Routes ###
 
 @app.route("/api/users/<int:user_id>/")
-def get_user(user_id):
+def get_user_by_id(user_id):
     """
     This route gets a user
     """
@@ -74,10 +74,17 @@ def get_saved_posts(user_id):
     saved_posts = user.serialize_saved_posts()
     return success_response(saved_posts)
 
+<<<<<<< Updated upstream
 @app.route("/api/posts/<int:post_id>/")
 def get_post_by_id(post_id):
     """
     Endpoint for displaying the page for a single post given its id
+=======
+@app.route("/api/users/<int:user_id>/save/<int:post_id>/", methods=["POST"])
+def save_post(user_id, post_id):
+    """
+    This route saves post to bookmarked posts for this user
+>>>>>>> Stashed changes
     """
     post = Post.query.filter_by(id=post_id).first()
     if post is None:
@@ -100,6 +107,62 @@ def unsave_post(user_id, post_id):
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
 
+<<<<<<< Updated upstream
+=======
+@app.route("/api/posts/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+def unsave_post(user_id, post_id):
+    """
+    Endpoint for unsaving a post/removing it from a user's bookmarks
+    Takes in user id and post id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    user.remove_post(post)
+    db.session.commit()
+    return success_response(user.serialize_saved_posts(), 201)
+
+
+### Post Routes ###
+
+@app.route("/api/posts/<int:post_id>/")
+def get_post_by_id(post_id):
+    """
+    Endpoint for displaying the page for a single post given its id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    return success_response(post.serialize())
+
+@app.route("/api/posts/<int:post_id>/link/")
+def get_post_link(post_id):
+    """
+    This route gets the post link for this post
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    
+    link = post.get_link()
+    return success_response({"post_link": link})
+
+# TODO: get post link
+
+# TODO: get post by field
+
+# TODO: get post by location
+
+# TODO: get post by payment
+
+# TODO: get post by qualifications
+
+
+
+>>>>>>> Stashed changes
 ### Asset Routes ###
 
 @app.route("/api/upload/", methods=["POST"])
