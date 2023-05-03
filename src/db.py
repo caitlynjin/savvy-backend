@@ -33,7 +33,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     netid = db.Column(db.String, nullable=False)
-    class_year = db.Column(db.Integer, nullable=True)
+    class_year = db.Column(db.String, nullable=True)
     saved_posts = db.relationship("Post", secondary=association_table)
 
     def __init__(self, **kwargs):
