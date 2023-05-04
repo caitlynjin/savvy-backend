@@ -34,7 +34,9 @@ class User(db.Model):
     name = db.Column(db.String, nullable=False)
     netid = db.Column(db.String, nullable=False)
     class_year = db.Column(db.String, nullable=True)
-    saved_posts = db.relationship("Post", secondary=association_table)
+    asset_id = db.Column(db.Integer, db.ForeignKey("asset.id"), nullable=False)
+    saved_posts = db.relationship("Post", secondary=association_table,
+                                  cascade="delete")
 
     def __init__(self, **kwargs):
         """
@@ -43,6 +45,7 @@ class User(db.Model):
         self.name = kwargs.get("name", "")
         self.netid = kwargs.get("netid", "")
         self.class_year = kwargs.get("class_year", "")
+        self.asset_id = kwargs.get("asset_id", None)
     
     def serialize(self):
         """
@@ -53,8 +56,18 @@ class User(db.Model):
             "name": self.name,
             "netid": self.netid,
             "class_year": self.class_year,
+            "img_url": self.get_img_url_by_asset_id(self.asset_id),
             "saved_posts": [post.serialize() for post in self.posts]
         }
+    
+    def get_img_url_by_asset_id(self, asset_id):
+        """
+        Return user's image url by Asset object id
+        """
+        asset = Asset.query.filter_by(id=asset_id).first()
+        if asset is None:
+            return ""
+        return self.get_asset_by_id(self.asset_id).get_url()
     
     def serialize_saved_posts(self):
         """
@@ -147,6 +160,7 @@ class Asset(db.Model):
     width = db.Column(db.Integer, nullable=True)
     height = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
+    user = db.relationship("User")
 
     def __init__(self, **kwargs):
         """
@@ -160,8 +174,14 @@ class Asset(db.Model):
         """
         return {
             "url": f"{self.base_url}/{self.salt}.{self.extension}",
-            "created_at": str(self.created_at)
+            "created_at": str(self.created_at),
         }
+    
+    def get_url(self):
+        """
+        Return the image url
+        """
+        return f"{self.base_url}/{self.salt}.{self.extension}"
 
     def create(self, image_data):
         """
@@ -218,7 +238,7 @@ class Asset(db.Model):
             #make s3 image url public
             s3_resource = boto3.resource("s3")
             object_acl = s3_resource.ObjectAcl(S3_BUCKET_NAME, img_filename)
-            object.acl.put(ACL="public-read")
+            object_acl.put(ACL="public-read")
 
             #remove image from server
             os.remove(img_temploc)
