@@ -148,6 +148,34 @@ class Post(db.Model):
         }
     
 
+class Tag(db.Model):
+    """
+    Model class for a Tag
+    """
+    __tablename__ = "tags"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    field = []
+    location = []
+    payment = []
+    qualifications = []
+    # TODO: do we need to have pre-filled tags for these lists?
+    # honestly not too sure how to organize this so feel free to change what's
+    # in this model and the post model if you need to
+
+    def __init__(self, **kwargs):
+        """
+        Initialize a Filter object
+        """
+    
+    def serialize(self):
+        """
+        Serialize a Filter object
+        """
+        return {
+            "id": self.id, # TODO: continue
+        }
+    
+
 class Asset(db.Model):
     """
     Asset model
