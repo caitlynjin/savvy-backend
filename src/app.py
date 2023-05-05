@@ -2,17 +2,22 @@ from db import db, User, Post, Tag
 from flask import Flask, request
 import json
 import os
+from data import create_tags, add_data
 
 app = Flask(__name__)
+FILE_NAME = "data.json"
 db_filename = "savvy.db"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///%s" % db_filename
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ECHO"] = True
+app.config["SQLALCHEMY_ECHO"] = False
 
 db.init_app(app)
 with app.app_context():
     db.create_all()
+    if len(Tag.query.all()) == 0:
+        create_tags()
+        add_data(FILE_NAME)
 
 
 def success_response(body, code=200):

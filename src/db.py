@@ -188,6 +188,8 @@ class Tag(db.Model):
         """
         Initialize a Filter object
         """
+        self.type = kwargs.get("type", "")
+        self.name = kwargs.get("name", "")
     
     def serialize(self):
         """
