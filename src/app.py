@@ -1,4 +1,4 @@
-from db import db, User, Post, Asset
+from db import db, User, Post, Tag
 from flask import Flask, request
 import json
 import os
@@ -51,8 +51,10 @@ def create_user():
     netid = body.get("netid")
     class_year = body.get("class_year", "")
 
-    if not name or not netid:
-        return failure_response("Missing name or NetID")
+    if not name:
+        return failure_response("Missing name")
+    if not netid:
+        return failure_response("Missing NetID")
     
     user = User(name=name, netid=netid, class_year=class_year)
     db.session.add(user)
@@ -76,7 +78,7 @@ def save_post(user_id, post_id):
     """
     Save post to bookmarked posts for this user
     """
-    user = User.query.filer_by(id=user_id).first()
+    user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("User not found")
     
@@ -88,7 +90,7 @@ def save_post(user_id, post_id):
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
     
-@app.route("/api/posts/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+@app.route("/api/users/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
 def unsave_post(user_id, post_id):
     """
     Endpoint for unsaving a post/removing it from a user's bookmarks
@@ -104,8 +106,31 @@ def unsave_post(user_id, post_id):
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
 
+@app.route("/api/users/<int:user_id>/tags/<int:tag_id>/", methods=["POST"])
+def add_tag(user_id, tag_id):
+    """
+    This route saves this tag to saved tags
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    tag = Tag.query.filter_by(id=tag_id).first()
+    if tag is None:
+        return failure_response("Tag not found")
+    user.add_tag(tag)
+    db.session.commit()
+    return success_response(user.serialize_saved_tags(), 201)
+
 
 ### Post Routes ###
+
+@app.route("/api/posts/")
+def get_all_posts():
+    """
+    This route gets all posts
+    """
+    posts = [post.serialize() for post in Post.query.all()]
+    return success_response({"posts": posts})
 
 @app.route("/api/posts/<int:post_id>/")
 def get_post_by_id(post_id):
@@ -129,27 +154,57 @@ def get_post_link(post_id):
     link = post.serialize_link()
     return success_response(link)
 
+@app.route("/api/posts/filter/", methods=["POST"])
+def get_posts_by_tag():
+    """
+    This route gets all posts by tag
 
-### Filter Routes ###
+    [{"id": , "type":, "name}]
 
+    """
+    body = json.loads(request.data)
+    tags = body.get("tags")
+    posts = set()
+    for t in tags:
+        tag = Tag.query.filter_by(id=t.id).first()
+        if tag is None:
+            return failure_response("Tag not found")
+        posts.add(post.serialize() for post in Post.query.filter_by(tag=t.id))
+    return {"posts": posts}
+
+
+### Tag Routes ###
+
+@app.route("/api/tags/<int:tag_id>/")
+def get_tag_by_id(tag_id):
+    """
+    This route gets tag by id
+    """
+    tag = Tag.query.filter_by(id=tag_id).first()
+    if tag is None:
+        return failure_response("Tag not found")
+    return success_response(tag.serialize())
 
 
 ### Asset Routes ###
 
-@app.route("/upload/", methods=["POST"])
-def upload():
-    """
-    Endpoint for uploading an image to AWS given its base64 form,
-    then storing/returning the URL of that image
-    """
-    body = json.loads(request.data)
-    image_data = body.get("image_data")
-    if image_data is None:
-        return failure_response("No Base64 URL")
+# @app.route("/upload/", methods=["POST"])
+# def upload():
+#     """
+#     Endpoint for uploading an image to AWS given its base64 form,
+#     then storing/returning the URL of that image
+#     """
+#     body = json.loads(request.data)
+#     image_data = body.get("image_data")
+#     if image_data is None:
+#         return failure_response("No Base64 URL")
     
-    #create new Asset object
-    asset = Asset(image_data=image_data)
-    db.session.add(asset)
-    db.session.commit()
+#     #create new Asset object
+#     asset = Asset(image_data=image_data)
+#     db.session.add(asset)
+#     db.session.commit()
 
-    return success_response(asset.serialize(), 201)
+#     return success_response(asset.serialize(), 201)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)
