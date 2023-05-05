@@ -88,7 +88,7 @@ def save_post(user_id, post_id):
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
     
-@app.route("/api/posts/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+@app.route("/api/users/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
 def unsave_post(user_id, post_id):
     """
     Endpoint for unsaving a post/removing it from a user's bookmarks
@@ -132,11 +132,30 @@ def get_post_link(post_id):
 
 ### Filter Routes ###
 
+@app.route("/api/posts/")
+def get_posts_by_filter():
+    """
+    Endpoint for getting posts by filter tags
+    """
+    body = json.loads(request.data)
+    field_list = body.get("field")
+    location_list = body.get("location")
+    payment_list = body.get("payment")
+    qualifications_list = body.get("qualifications")
+    
+    # Need failure_response? Filters are optional though so I'm not sure
+    
+    posts_by_field = p.serialize() for p in Post.query.filter_by(field=field for field in field_list)
+    posts_by_location = p.serialize() for p in Post.query.filter_by(location=location for location in location_list) 
+    posts_by_payment = p.serialize() for p in Post.query.filter_by(payment=payment for payment in payment_list) 
+    posts_by_qualifications = p.serialize() for p in Post.query.filter_by(qualifications=qualifications for qualifications in qualifications_list) 
+    
+    # How to combine the four post categories into one serialized dictionary and remove duplicates?
 
 
 ### Asset Routes ###
 
-@app.route("/upload/", methods=["POST"])
+@app.route("/api/upload/", methods=["POST"])
 def upload():
     """
     Endpoint for uploading an image to AWS given its base64 form,
