@@ -18,7 +18,7 @@ BASE_DIR = os.getcwd()
 S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.us-east-1.amazonaws.com"
 
-association_table = db.Table(
+user_post_association_table = db.Table(
     "association",
     db.Column("user_id", db.Integer, db.ForeignKey("users.id")),
     db.Column("post_id", db.Integer, db.ForeignKey("posts.id"))
@@ -45,11 +45,14 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     netid = db.Column(db.String, nullable=False)
+    password = db.Column(db.String, nullable=False)
     class_year = db.Column(db.String, nullable=True)
     # asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False)
-    posts = db.relationship("Post", secondary=association_table,
-                                  back_populates="users")
-    tags = db.relationship("Tag", secondary=user_tag_association_table,
+    posts_saved = db.relationship("Post", secondary=user_post_association_table,
+                                  back_populates="users_saved")
+    posts_applied = db.relationship("Post", secondary=user_post_association_table,
+                                    back_populates="users_applied")
+    tags_saved = db.relationship("Tag", secondary=user_tag_association_table,
                                  back_populates="users")
 
     def __init__(self, **kwargs):
@@ -58,6 +61,7 @@ class User(db.Model):
         """
         self.name = kwargs.get("name", "")
         self.netid = kwargs.get("netid", "")
+        self.password = kwargs.get("password", "")
         self.class_year = kwargs.get("class_year", "")
         # self.asset_id = kwargs.get("asset_id", None)
     
@@ -69,10 +73,12 @@ class User(db.Model):
             "id": self.id,
             "name": self.name,
             "netid": self.netid,
+            "password": self.password,
             "class_year": self.class_year,
             # "img_url": self.get_img_url_by_asset_id(self.asset_id),
-            "posts": [post.serialize() for post in self.posts],
-            "tags": [tag.serialize() for tag in self.tags]
+            "posts_saved": [post.serialize() for post in self.posts_saved],
+            "posts_applied": [post.serialize() for post in self.posts_applied],
+            "tags": [tag.serialize() for tag in self.tags_saved]
         }
     
     # def get_img_url_by_asset_id(self, asset_id):
@@ -86,37 +92,63 @@ class User(db.Model):
     
     def serialize_saved_posts(self):
         """
-        Return list of saved posts
+        Serialize list of saved posts
         """
         return {
-            "saved_posts": [post.serialize() for post in self.posts]
+            "posts_saved": [post.serialize() for post in self.posts_saved]
+        }
+    
+    def serialize_applied_posts(self):
+        """
+        Serialize list of applied posts
+        """
+        return {
+            "posts_applied": [post.serialize() for post in self.posts_applied]
         }
     
     def serialize_saved_tags(self):
         """
-        Return list of saved tags
+        Serialize list of saved tags
         """
         return {
-            "saved_tags": [tag.serialize() for tag in self.tags]
+            "tags_saved": [tag.serialize() for tag in self.tags_saved]
         }
     
-    def add_post(self, post):
+    def add_posts_saved(self, post):
         """
-        Add this post to the given user
+        Add post to the user's saved posts
         """
-        self.posts.append(post)
+        self.posts_saved.append(post)
 
-    def remove_post(self, post):
+    def remove_posts_saved(self, post):
         """
-        Remove post from user's list of saved posts
+        Remove post from user's saved posts
         """
-        self.posts.remove(post)
+        self.posts_saved.remove(post)
+
+    def add_posts_applied(self, post):
+        """
+        Add post to the user's applied posts
+        """
+        self.posts_applied.append(post)
+
+    def remove_posts_applied(self, post):
+        """
+        Remove post from user's applied posts
+        """
+        self.posts_applied.remove(post)
 
     def add_tag(self, tag):
         """
-        Add tag to user's list of saved tags
+        Add tag to user's saved tags
         """
         self.tags.append(tag)
+
+    def remove_tag(self, tag):
+        """
+        Remove tag from user's saved tags
+        """
+        self.tags.remove(tag)
     
 
 class Post(db.Model):
@@ -126,24 +158,27 @@ class Post(db.Model):
     __tablename__ = "posts"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     position = db.Column(db.String, nullable=False)
+    employer = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
-    ### Filters ###
-    tags = db.relationship("Tag", secondary=post_tag_association_table,
-                            back_populates="posts")
-    ###
+    qualifications = db.Column(db.String, nullable=False)
     wage = db.Column(db.String, nullable=False)
     how_to_apply = db.Column(db.String, nullable=False)
     link = db.Column(db.String, nullable=False)
-
-    users = db.relationship("User", secondary=association_table,
-                                  back_populates="posts")
+    users_saved = db.relationship("User", secondary=user_post_association_table,
+                                  back_populates="posts_saved")
+    users_applied = db.relationship("User", secondary=user_post_association_table,
+                                    back_populates="posts_applied")
+    tags = db.relationship("Tag", secondary=post_tag_association_table,
+                            back_populates="posts")
 
     def __init__(self, **kwargs):
         """
         Initialize a Post object
         """
         self.position = kwargs.get("position", "")
+        self.employer = kwargs.get("employer", "")
         self.description = kwargs.get("description", "")
+        self.qualifications = kwargs.get("qualifications", "")
         self.wage = kwargs.get("wage", "")
         self.how_to_apply = kwargs.get("how_to_apply", "")
         self.link = kwargs.get("link", "")
@@ -155,11 +190,13 @@ class Post(db.Model):
         return {
             "id": self.id,
             "position": self.position,
+            "employer": self.employer,
             "description": self.description,
-            "tags": [tag.serialize() for tag in self.tags],
+            "qualifications": self.qualifications,
             "wage": self.wage,
             "how_to_apply": self.how_to_apply,
-            "link": self.link
+            "link": self.link,
+            "tags": [tag.serialize() for tag in self.tags]
         }
     
     def serialize_link(self):
@@ -180,20 +217,20 @@ class Tag(db.Model):
     type = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
     users = db.relationship("User", secondary=user_tag_association_table,
-                                 back_populates="tags")
+                                 back_populates="tags_saved")
     posts = db.relationship("Post", secondary=post_tag_association_table,
                             back_populates="tags")
 
     def __init__(self, **kwargs):
         """
-        Initialize a Filter object
+        Initialize a Tag object
         """
         self.type = kwargs.get("type", "")
         self.name = kwargs.get("name", "")
     
     def serialize(self):
         """
-        Serialize a Filter object
+        Serialize a Tag object
         """
         return {
             "id": self.id,
@@ -201,11 +238,11 @@ class Tag(db.Model):
             "name": self.name
         }
     
-    def get_type(self):
+    def get_posts(self):
         """
-        Get tag type
+        Return all posts for this tag
         """
-        return self.type
+        return [post.serialize() for post in self.posts]
     
 
 # class Asset(db.Model):

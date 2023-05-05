@@ -66,7 +66,8 @@ def create_user():
     db.session.commit()
     return success_response(user.serialize(), 201)
 
-@app.route("/api/users/<int:user_id>/saved_posts/")
+# TODO: adjust
+@app.route("/api/users/<int:user_id>/posts_saved/")
 def get_saved_posts(user_id):
     """
     This route gets all saved posts by user id
@@ -74,32 +75,39 @@ def get_saved_posts(user_id):
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("User not found")
-    
     saved_posts = user.serialize_saved_posts()
     return success_response(saved_posts)
 
-@app.route("/api/users/<int:user_id>/save/<int:post_id>/", methods=["POST"])
-def save_post(user_id, post_id):
+@app.route("/api/users/<int:user_id>/posts_applied/")
+def get_applied_posts(user_id):
     """
-    Save post to bookmarked posts for this user
+    This route gets all applied posts by user id
     """
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("User not found")
-    
+    applied_posts = user.serialize_applied_posts()
+    return success_response(applied_posts)
+
+@app.route("/api/users/<int:user_id>/save_post/<int:post_id>/", methods=["POST"])
+def save_post(user_id, post_id):
+    """
+    This route adds post to bookmarked posts for this user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
     post = Post.query.filter_by(id=post_id).first()
     if post is None:
         return failure_response("Post not found")
-    
-    user.add_post(post)
+    user.add_posts_saved(post)
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
     
-@app.route("/api/users/<int:user_id>/unsave/<int:post_id>/", methods=["POST"])
+@app.route("/api/users/<int:user_id>/unsave_post/<int:post_id>/", methods=["POST"])
 def unsave_post(user_id, post_id):
     """
-    Endpoint for unsaving a post/removing it from a user's bookmarks
-    Takes in user id and post id
+    This route removes post from bookmarked posts for this user
     """
     post = Post.query.filter_by(id=post_id).first()
     if post is None:
@@ -107,14 +115,44 @@ def unsave_post(user_id, post_id):
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("User not found")
-    user.remove_post(post)
+    user.remove_posts_saved(post)
     db.session.commit()
     return success_response(user.serialize_saved_posts(), 201)
 
-@app.route("/api/users/<int:user_id>/tags/<int:tag_id>/", methods=["POST"])
+@app.route("/api/users/<int:user_id>/apply_post/<int:post_id>/", methods=["POST"])
+def apply_post(user_id, post_id):
+    """
+    This route adds post to list of applied posts for this user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    user.add_posts_applied(post)
+    db.session.commit()
+    return success_response(user.serialize_applied_posts(), 201)
+    
+@app.route("/api/users/<int:user_id>/unapply_post/<int:post_id>/", methods=["POST"])
+def unapply_post(user_id, post_id):
+    """
+    This route removes post from list of applied posts for this user
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found")
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    user.remove_posts_applied(post)
+    db.session.commit()
+    return success_response(user.serialize_applied_posts(), 201)
+
+@app.route("/api/users/<int:user_id>/add_tag/<int:tag_id>/", methods=["POST"])
 def add_tag(user_id, tag_id):
     """
-    This route saves this tag to saved tags
+    This route adds this tag to saved tags for this user
     """
     user = User.query.filter_by(id=user_id).first()
     if user is None:
@@ -123,6 +161,21 @@ def add_tag(user_id, tag_id):
     if tag is None:
         return failure_response("Tag not found")
     user.add_tag(tag)
+    db.session.commit()
+    return success_response(user.serialize_saved_tags(), 201)
+
+@app.route("/api/users/<int:user_id>/remove_tag/<int:tag_id>/", methods=["POST"])
+def remove_tag(user_id, tag_id):
+    """
+    This route removes this tag from saved tags for this user
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    tag = Tag.query.filter_by(id=tag_id).first()
+    if tag is None:
+        return failure_response("Tag not found")
+    user.remove_tag(tag)
     db.session.commit()
     return success_response(user.serialize_saved_tags(), 201)
 
@@ -160,12 +213,10 @@ def get_post_link(post_id):
     return success_response(link)
 
 @app.route("/api/posts/filter/", methods=["POST"])
-def get_posts_by_tag():
+def filter_posts_by_tag():
     """
-    This route gets all posts by tag
-
-    [{"id": , "type":, "name}]
-
+    This route filters all posts by tag
+    Request body: { "tags": [{"id": , "type":, "name": }, ...]}
     """
     body = json.loads(request.data)
     tags = body.get("tags")
@@ -174,8 +225,8 @@ def get_posts_by_tag():
         tag = Tag.query.filter_by(id=t.id).first()
         if tag is None:
             return failure_response("Tag not found")
-        posts.add(post.serialize() for post in Post.query.filter_by(tag=t.id))
-    return {"posts": posts}
+        posts.add(post for post in tag.get_posts())
+    return success_response({"posts": posts}, 201)
 
 
 ### Tag Routes ###
