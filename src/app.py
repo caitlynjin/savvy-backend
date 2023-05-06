@@ -65,6 +65,18 @@ def create_user():
     db.session.commit()
     return success_response(user.serialize(), 201)
 
+@app.route("/api/users/<int:user_id>/", methods=["DELETE"])
+def delete_user(user_id):
+    """
+    This route deletes the user by user id
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    db.session.delete(user)
+    db.session.commit()
+    return success_response(user.serialize(), 201) 
+
 @app.route("/api/users/<int:user_id>/posts_saved/")
 def get_saved_posts(user_id):
     """
