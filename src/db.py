@@ -18,8 +18,14 @@ BASE_DIR = os.getcwd()
 S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.us-east-1.amazonaws.com"
 
-user_post_association_table = db.Table(
-    "association",
+user_saved_posts_association_table = db.Table(
+    "user_saved_posts_association",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.id")),
+    db.Column("post_id", db.Integer, db.ForeignKey("posts.id"))
+)
+
+user_applied_posts_association_table = db.Table(
+    "user_applied_posts_association",
     db.Column("user_id", db.Integer, db.ForeignKey("users.id")),
     db.Column("post_id", db.Integer, db.ForeignKey("posts.id"))
 )
@@ -48,9 +54,9 @@ class User(db.Model):
     password = db.Column(db.String, nullable=False)
     class_year = db.Column(db.String, nullable=True)
     # asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False)
-    posts_saved = db.relationship("Post", secondary=user_post_association_table,
+    posts_saved = db.relationship("Post", secondary=user_saved_posts_association_table,
                                   back_populates="users_saved")
-    posts_applied = db.relationship("Post", secondary=user_post_association_table,
+    posts_applied = db.relationship("Post", secondary=user_applied_posts_association_table,
                                     back_populates="users_applied")
     tags_saved = db.relationship("Tag", secondary=user_tag_association_table,
                                  back_populates="users")
@@ -89,6 +95,18 @@ class User(db.Model):
     #     if asset is None:
     #         return ""
     #     return self.get_asset_by_id(self.asset_id).get_url()
+
+    def get_saved_posts(self):
+        """
+        Return user's saved posts
+        """
+        return [post.serialize() for post in self.posts_saved]
+    
+    def get_applied_posts(self):
+        """
+        Return user's saved posts
+        """
+        return [post.serialize() for post in self.posts_applied]
     
     def serialize_saved_posts(self):
         """
@@ -164,9 +182,9 @@ class Post(db.Model):
     wage = db.Column(db.String, nullable=False)
     how_to_apply = db.Column(db.String, nullable=False)
     link = db.Column(db.String, nullable=False)
-    users_saved = db.relationship("User", secondary=user_post_association_table,
+    users_saved = db.relationship("User", secondary=user_saved_posts_association_table,
                                   back_populates="posts_saved")
-    users_applied = db.relationship("User", secondary=user_post_association_table,
+    users_applied = db.relationship("User", secondary=user_applied_posts_association_table,
                                     back_populates="posts_applied")
     tags = db.relationship("Tag", secondary=post_tag_association_table,
                             back_populates="posts")
