@@ -241,7 +241,7 @@ def get_tag_by_id(tag_id):
 
 ### Asset Routes ###
 
-@app.route("/upload/", methods=["POST"])
+@app.route("/api/upload/", methods=["POST"])
 def upload():
     """
     Endpoint for uploading an image to AWS given its base64 form,
