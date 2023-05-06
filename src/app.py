@@ -35,6 +35,14 @@ def welcome():
 
 ### User Routes ###
 
+@app.route("/api/users/")
+def get_all_users():
+    """
+    This route gets all users
+    """
+    users = [user.serialize() for user in User.query.all()]
+    return success_response({"users": users})
+
 @app.route("/api/users/<int:user_id>/")
 def get_user_by_id(user_id):
     """
@@ -46,23 +54,25 @@ def get_user_by_id(user_id):
     return success_response(user.serialize())
 
 @app.route("/api/users/", methods=["POST"])
-def create_user():
+def fetch_user():
     """
-    This route creates a new user
+    This route fetches the user if exists, otherwise creates a new user
     """
     body = json.loads(request.data)
     name = body.get("name")
     netid = body.get("netid")
-    class_year = body.get("class_year", "")
+    img_url = body.get("img_url")
 
     if not name:
         return failure_response("Missing name")
-    if not netid:
-        return failure_response("Missing NetID")
+    if not img_url:
+        return failure_response("Missing image url")
+    user = User.query.filter_by(netid=netid).first()
     
-    user = User(name=name, netid=netid, class_year=class_year)
-    db.session.add(user)
-    db.session.commit()
+    if user is None:
+        user = User(name=name, netid=netid, img_url=img_url)
+        db.session.add(user)
+        db.session.commit()
     return success_response(user.serialize(), 201)
 
 @app.route("/api/users/<int:user_id>/", methods=["DELETE"])

@@ -51,6 +51,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     netid = db.Column(db.String, nullable=False)
+    img_url = db.Column(db.String, nullable=False)
     posts_saved = db.relationship("Post", secondary=user_saved_posts_association_table,
                                   back_populates="users_saved")
     posts_applied = db.relationship("Post", secondary=user_applied_posts_association_table,
@@ -64,6 +65,7 @@ class User(db.Model):
         """
         self.name = kwargs.get("name", "")
         self.netid = kwargs.get("netid", "")
+        self.img_url = kwargs.get("img_url", "")
     
     def serialize(self):
         """
@@ -73,6 +75,7 @@ class User(db.Model):
             "id": self.id,
             "name": self.name,
             "netid": self.netid,
+            "img_url": self.img_url,
             "posts_saved": [post.serialize() for post in self.posts_saved],
             "posts_applied": [post.serialize() for post in self.posts_applied],
             "tags": [tag.serialize() for tag in self.tags_saved]
@@ -95,7 +98,7 @@ class User(db.Model):
         Serialize list of saved posts
         """
         return {
-            "posts_saved": [post.serialize() for post in self.posts_saved]
+            "posts": [post.serialize() for post in self.posts_saved]
         }
     
     def serialize_applied_posts(self):
@@ -103,7 +106,7 @@ class User(db.Model):
         Serialize list of applied posts
         """
         return {
-            "posts_applied": [post.serialize() for post in self.posts_applied]
+            "posts": [post.serialize() for post in self.posts_applied]
         }
     
     def serialize_saved_tags(self):
@@ -111,7 +114,7 @@ class User(db.Model):
         Serialize list of saved tags
         """
         return {
-            "tags_saved": [tag.serialize() for tag in self.tags_saved]
+            "tags": [tag.serialize() for tag in self.tags_saved]
         }
     
     def add_posts_saved(self, post):
@@ -235,8 +238,7 @@ class Tag(db.Model):
         return {
             "id": self.id,
             "type": self.type,
-            "name": self.name,
-            # "posts": [post.serialize() for post in self.posts]
+            "name": self.name
         }
     
     def get_posts(self):
