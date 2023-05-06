@@ -53,7 +53,6 @@ class User(db.Model):
     netid = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
     class_year = db.Column(db.String, nullable=True)
-    # asset_id = db.Column(db.Integer, db.ForeignKey("assets.id"), nullable=False)
     posts_saved = db.relationship("Post", secondary=user_saved_posts_association_table,
                                   back_populates="users_saved")
     posts_applied = db.relationship("Post", secondary=user_applied_posts_association_table,
@@ -69,7 +68,6 @@ class User(db.Model):
         self.netid = kwargs.get("netid", "")
         self.password = kwargs.get("password", "")
         self.class_year = kwargs.get("class_year", "")
-        # self.asset_id = kwargs.get("asset_id", None)
     
     def serialize(self):
         """
@@ -81,20 +79,10 @@ class User(db.Model):
             "netid": self.netid,
             "password": self.password,
             "class_year": self.class_year,
-            # "img_url": self.get_img_url_by_asset_id(self.asset_id),
             "posts_saved": [post.serialize() for post in self.posts_saved],
             "posts_applied": [post.serialize() for post in self.posts_applied],
             "tags": [tag.serialize() for tag in self.tags_saved]
         }
-    
-    # def get_img_url_by_asset_id(self, asset_id):
-    #     """
-    #     Return user's image url by Asset object id
-    #     """
-    #     asset = Asset.query.filter_by(id=asset_id).first()
-    #     if asset is None:
-    #         return ""
-    #     return self.get_asset_by_id(self.asset_id).get_url()
 
     def get_saved_posts(self):
         """
@@ -264,101 +252,95 @@ class Tag(db.Model):
         return [post.serialize() for post in self.posts]
     
 
-# class Asset(db.Model):
-#     """
-#     Asset model
-#     """
-#     __tablename__ = "assets"
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     base_url = db.Column(db.String, nullable=True)
-#     salt = db.Column(db.String, nullable=True)
-#     extension = db.Column(db.String, nullable=True)
-#     width = db.Column(db.Integer, nullable=True)
-#     height = db.Column(db.Integer, nullable=True)
-#     created_at = db.Column(db.DateTime, nullable=False)
+class Asset(db.Model):
+    """
+    Asset model
+    """
+    __tablename__ = "assets"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    base_url = db.Column(db.String, nullable=True)
+    salt = db.Column(db.String, nullable=True)
+    extension = db.Column(db.String, nullable=True)
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False)
 
-#     def __init__(self, **kwargs):
-#         """
-#         Initialize an Asset object
-#         """
-#         self.create(kwargs.get("image_data"))
+    def __init__(self, **kwargs):
+        """
+        Initialize an Asset object
+        """
+        self.create(kwargs.get("image_data"))
 
-#     def serialize(self):
-#         """
-#         Serialize an Asset object
-#         """
-#         return {
-#             "url": f"{self.base_url}/{self.salt}.{self.extension}",
-#             "created_at": str(self.created_at),
-#         }
-    
-#     def get_url(self):
-#         """
-#         Return the image url
-#         """
-#         return f"{self.base_url}/{self.salt}.{self.extension}"
+    def serialize(self):
+        """
+        Serialize an Asset object
+        """
+        return {
+            "url": f"{self.base_url}/{self.salt}.{self.extension}",
+            "created_at": str(self.created_at),
+        }
 
-#     def create(self, image_data):
-#         """
-#         Given an image in base64 form, possible responses:
-#             1. Rejects the image if it's not supported filetype
-#             2. Generates a random string for the image filename
-#             3. Decodes the image and attempts to upload it to AWS
-#         """
-#         try:
-#             ext = guess_extension(guess_type(image_data)[0])[1:]
+    def create(self, image_data):
+        """
+        Given an image in base64 form, possible responses:
+            1. Rejects the image if it's not supported filetype
+            2. Generates a random string for the image filename
+            3. Decodes the image and attempts to upload it to AWS
+        """
+        try:
+            ext = guess_extension(guess_type(image_data)[0])[1:]
 
-#             #only accept supported file extension
-#             if ext not in EXTENSIONS:
-#                 raise Exception(f"Extention {ext} not supported")
+            #only accept supported file extension
+            if ext not in EXTENSIONS:
+                raise Exception(f"Extention {ext} not supported")
             
-#             #securely generate a random string for image name
-#             salt = "".join(
-#                 random.SystemRandom().choice(
-#                     string.ascii_uppercase + string.digits
-#                 )
-#                 for _ in range(16)
-#             )
+            #securely generate a random string for image name
+            salt = "".join(
+                random.SystemRandom().choice(
+                    string.ascii_uppercase + string.digits
+                )
+                for _ in range(16)
+            )
 
-#             #remove base64 header
-#             img_str = re.sub("^data:image/.+;base64,", "", image_data)
-#             img_data = base64.b64decode(img_str)
-#             img = Image.open(BytesIO(img_data))
+            #remove base64 header
+            img_str = re.sub("^data:image/.+;base64,", "", image_data)
+            img_data = base64.b64decode(img_str)
+            img = Image.open(BytesIO(img_data))
 
-#             self.base_url = S3_BASE_URL
-#             self.salt = salt
-#             self.extension = ext
-#             self.width = img.width
-#             self.height = img.height
-#             self.created_at = datetime.datetime.now()
+            self.base_url = S3_BASE_URL
+            self.salt = salt
+            self.extension = ext
+            self.width = img.width
+            self.height = img.height
+            self.created_at = datetime.datetime.now()
 
-#             img_filename = f"{self.salt}.{self.extension}"
-#             self.upload(img, img_filename)
-#         except Exception as e:
-#             print(f"Error while creating image: {e}")
+            img_filename = f"{self.salt}.{self.extension}"
+            self.upload(img, img_filename)
+        except Exception as e:
+            print(f"Error while creating image: {e}")
 
-#     def upload(self, img, img_filename):
-#         """
-#         Attempt to upload the image into S3 bucket
-#         """
-#         try:
-#             #save image temporarily on the server
-#             img_temploc = f"{BASE_DIR}/{img_filename}"
-#             img.save(img_temploc)
+    def upload(self, img, img_filename):
+        """
+        Attempt to upload the image into S3 bucket
+        """
+        try:
+            #save image temporarily on the server
+            img_temploc = f"{BASE_DIR}/{img_filename}"
+            img.save(img_temploc)
 
-#             #upload the image to S3
-#             s3_client = boto3.client("s3")
-#             s3_client.upload_file(img_temploc, S3_BUCKET_NAME, img_filename)
+            #upload the image to S3
+            s3_client = boto3.client("s3")
+            s3_client.upload_file(img_temploc, S3_BUCKET_NAME, img_filename)
 
-#             #make s3 image url public
-#             s3_resource = boto3.resource("s3")
-#             object_acl = s3_resource.ObjectAcl(S3_BUCKET_NAME, img_filename)
-#             object_acl.put(ACL="public-read")
+            #make s3 image url public
+            s3_resource = boto3.resource("s3")
+            object_acl = s3_resource.ObjectAcl(S3_BUCKET_NAME, img_filename)
+            object_acl.put(ACL="public-read")
 
-#             #remove image from server
-#             os.remove(img_temploc)
+            #remove image from server
+            os.remove(img_temploc)
 
-#         except Exception as e:
-#             print(f"Error while uploading image: {e}")
+        except Exception as e:
+            print(f"Error while uploading image: {e}")
 
     

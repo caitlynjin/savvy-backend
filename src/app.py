@@ -16,7 +16,6 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
     if len(Post.query.all()) == 0:
-        # create_tags()
         add_data(FILE_NAME)
 
 
@@ -242,23 +241,23 @@ def get_tag_by_id(tag_id):
 
 ### Asset Routes ###
 
-# @app.route("/upload/", methods=["POST"])
-# def upload():
-#     """
-#     Endpoint for uploading an image to AWS given its base64 form,
-#     then storing/returning the URL of that image
-#     """
-#     body = json.loads(request.data)
-#     image_data = body.get("image_data")
-#     if image_data is None:
-#         return failure_response("No Base64 URL")
+@app.route("/upload/", methods=["POST"])
+def upload():
+    """
+    Endpoint for uploading an image to AWS given its base64 form,
+    then storing/returning the URL of that image
+    """
+    body = json.loads(request.data)
+    image_data = body.get("image_data")
+    if image_data is None:
+        return failure_response("No Base64 URL")
     
-#     #create new Asset object
-#     asset = Asset(image_data=image_data)
-#     db.session.add(asset)
-#     db.session.commit()
+    #create new Asset object
+    asset = Asset(image_data=image_data)
+    db.session.add(asset)
+    db.session.commit()
 
-#     return success_response(asset.serialize(), 201)
+    return success_response(asset.serialize(), 201)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
