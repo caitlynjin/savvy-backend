@@ -1,0 +1,6 @@
+version: "3"
+services:
+  savvy:
+    image: caitlynjin/savvy:v1
+    ports:
+    - "80:8000"
