@@ -1,4 +1,4 @@
-from db import db, User, Post, Tag
+from db import db, User, Post, Tag, Asset
 from flask import Flask, request
 import json
 import os
