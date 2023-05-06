@@ -235,7 +235,8 @@ class Tag(db.Model):
         return {
             "id": self.id,
             "type": self.type,
-            "name": self.name
+            "name": self.name,
+            # "posts": [post.serialize() for post in self.posts]
         }
     
     def get_posts(self):

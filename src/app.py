@@ -208,13 +208,15 @@ def filter_posts_by_tag():
     """
     body = json.loads(request.data)
     tags = body.get("tags")
-    posts = set()
+    posts = []
     for t in tags:
-        tag = Tag.query.filter_by(id=t.id).first()
+        tag = Tag.query.filter_by(id=t.get("id")).first()
         if tag is None:
             return failure_response("Tag not found")
-        posts.add(post for post in tag.get_posts())
-    return success_response({"posts": posts}, 201)
+        for p in tag.get_posts():
+            if not p in posts:
+                posts.append(p)
+    return success_response({"posts": posts})
 
 
 ### Tag Routes ###
