@@ -2,7 +2,7 @@ from db import db, User, Post, Tag
 from flask import Flask, request
 import json
 import os
-from data import create_tags, add_data
+from data import add_data
 
 app = Flask(__name__)
 FILE_NAME = "data.json"
@@ -15,8 +15,8 @@ app.config["SQLALCHEMY_ECHO"] = False
 db.init_app(app)
 with app.app_context():
     db.create_all()
-    if len(Tag.query.all()) == 0:
-        create_tags()
+    if len(Post.query.all()) == 0:
+        # create_tags()
         add_data(FILE_NAME)
 
 
@@ -200,18 +200,6 @@ def get_post_by_id(post_id):
         return failure_response("Post not found")
     return success_response(post.serialize())
 
-@app.route("/api/posts/<int:post_id>/link/")
-def get_post_link(post_id):
-    """
-    This route gets the post link for this post
-    """
-    post = Post.query.filter_by(id=post_id).first()
-    if post is None:
-        return failure_response("Post not found")
-    
-    link = post.serialize_link()
-    return success_response(link)
-
 @app.route("/api/posts/filter/", methods=["POST"])
 def filter_posts_by_tag():
     """
@@ -230,6 +218,15 @@ def filter_posts_by_tag():
 
 
 ### Tag Routes ###
+
+@app.route("/api/tags/")
+
+def get_all_tags():
+    """
+    This route gets all tags
+    """
+    tags = [tag.serialize() for tag in Tag.query.all()]
+    return success_response({"tags": tags})
 
 @app.route("/api/tags/<int:tag_id>/")
 def get_tag_by_id(tag_id):
