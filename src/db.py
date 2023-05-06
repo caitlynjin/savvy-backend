@@ -51,8 +51,6 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     netid = db.Column(db.String, nullable=False)
-    password = db.Column(db.String, nullable=False)
-    class_year = db.Column(db.String, nullable=True)
     posts_saved = db.relationship("Post", secondary=user_saved_posts_association_table,
                                   back_populates="users_saved")
     posts_applied = db.relationship("Post", secondary=user_applied_posts_association_table,
@@ -66,8 +64,6 @@ class User(db.Model):
         """
         self.name = kwargs.get("name", "")
         self.netid = kwargs.get("netid", "")
-        self.password = kwargs.get("password", "")
-        self.class_year = kwargs.get("class_year", "")
     
     def serialize(self):
         """
@@ -77,8 +73,6 @@ class User(db.Model):
             "id": self.id,
             "name": self.name,
             "netid": self.netid,
-            "password": self.password,
-            "class_year": self.class_year,
             "posts_saved": [post.serialize() for post in self.posts_saved],
             "posts_applied": [post.serialize() for post in self.posts_applied],
             "tags": [tag.serialize() for tag in self.tags_saved]
