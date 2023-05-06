@@ -142,13 +142,13 @@ class User(db.Model):
         """
         Add tag to user's saved tags
         """
-        self.tags.append(tag)
+        self.tags_saved.append(tag)
 
     def remove_tag(self, tag):
         """
         Remove tag from user's saved tags
         """
-        self.tags.remove(tag)
+        self.tags_saved.remove(tag)
     
 
 class Post(db.Model):

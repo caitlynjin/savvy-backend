@@ -66,7 +66,6 @@ def create_user():
     db.session.commit()
     return success_response(user.serialize(), 201)
 
-# TODO: adjust
 @app.route("/api/users/<int:user_id>/posts_saved/")
 def get_saved_posts(user_id):
     """
