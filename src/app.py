@@ -1,8 +1,8 @@
-from db import db, User, Post, Tag
+from db import db, User, Post, Tag, Asset
 from flask import Flask, request
 import json
 import os
-from data import create_tags, add_data
+from data import add_data
 
 app = Flask(__name__)
 FILE_NAME = "data.json"
@@ -15,8 +15,7 @@ app.config["SQLALCHEMY_ECHO"] = False
 db.init_app(app)
 with app.app_context():
     db.create_all()
-    if len(Tag.query.all()) == 0:
-        create_tags()
+    if len(Post.query.all()) == 0:
         add_data(FILE_NAME)
 
 
@@ -36,6 +35,14 @@ def welcome():
 
 ### User Routes ###
 
+@app.route("/api/users/")
+def get_all_users():
+    """
+    This route gets all users
+    """
+    users = [user.serialize() for user in User.query.all()]
+    return success_response({"users": users})
+
 @app.route("/api/users/<int:user_id>/")
 def get_user_by_id(user_id):
     """
@@ -47,26 +54,39 @@ def get_user_by_id(user_id):
     return success_response(user.serialize())
 
 @app.route("/api/users/", methods=["POST"])
-def create_user():
+def fetch_user():
     """
-    This route creates a new user
+    This route fetches the user if exists, otherwise creates a new user
     """
     body = json.loads(request.data)
     name = body.get("name")
     netid = body.get("netid")
-    class_year = body.get("class_year", "")
+    img_url = body.get("img_url")
 
     if not name:
         return failure_response("Missing name")
-    if not netid:
-        return failure_response("Missing NetID")
+    if not img_url:
+        return failure_response("Missing image url")
+    user = User.query.filter_by(netid=netid).first()
     
-    user = User(name=name, netid=netid, class_year=class_year)
-    db.session.add(user)
-    db.session.commit()
+    if user is None:
+        user = User(name=name, netid=netid, img_url=img_url)
+        db.session.add(user)
+        db.session.commit()
     return success_response(user.serialize(), 201)
 
-# TODO: adjust
+@app.route("/api/users/<int:user_id>/", methods=["DELETE"])
+def delete_user(user_id):
+    """
+    This route deletes the user by user id
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found")
+    db.session.delete(user)
+    db.session.commit()
+    return success_response(user.serialize(), 201) 
+
 @app.route("/api/users/<int:user_id>/posts_saved/")
 def get_saved_posts(user_id):
     """
@@ -200,18 +220,6 @@ def get_post_by_id(post_id):
         return failure_response("Post not found")
     return success_response(post.serialize())
 
-@app.route("/api/posts/<int:post_id>/link/")
-def get_post_link(post_id):
-    """
-    This route gets the post link for this post
-    """
-    post = Post.query.filter_by(id=post_id).first()
-    if post is None:
-        return failure_response("Post not found")
-    
-    link = post.serialize_link()
-    return success_response(link)
-
 @app.route("/api/posts/filter/", methods=["POST"])
 def filter_posts_by_tag():
     """
@@ -220,16 +228,27 @@ def filter_posts_by_tag():
     """
     body = json.loads(request.data)
     tags = body.get("tags")
-    posts = set()
+    posts = []
     for t in tags:
-        tag = Tag.query.filter_by(id=t.id).first()
+        tag = Tag.query.filter_by(id=t.get("id")).first()
         if tag is None:
             return failure_response("Tag not found")
-        posts.add(post for post in tag.get_posts())
-    return success_response({"posts": posts}, 201)
+        for p in tag.get_posts():
+            if not p in posts:
+                posts.append(p)
+    return success_response({"posts": posts})
 
 
 ### Tag Routes ###
+
+@app.route("/api/tags/")
+
+def get_all_tags():
+    """
+    This route gets all tags
+    """
+    tags = [tag.serialize() for tag in Tag.query.all()]
+    return success_response({"tags": tags})
 
 @app.route("/api/tags/<int:tag_id>/")
 def get_tag_by_id(tag_id):
@@ -244,23 +263,23 @@ def get_tag_by_id(tag_id):
 
 ### Asset Routes ###
 
-# @app.route("/upload/", methods=["POST"])
-# def upload():
-#     """
-#     Endpoint for uploading an image to AWS given its base64 form,
-#     then storing/returning the URL of that image
-#     """
-#     body = json.loads(request.data)
-#     image_data = body.get("image_data")
-#     if image_data is None:
-#         return failure_response("No Base64 URL")
+@app.route("/api/upload/", methods=["POST"])
+def upload():
+    """
+    Endpoint for uploading an image to AWS given its base64 form,
+    then storing/returning the URL of that image
+    """
+    body = json.loads(request.data)
+    image_data = body.get("image_data")
+    if image_data is None:
+        return failure_response("No Base64 URL")
     
-#     #create new Asset object
-#     asset = Asset(image_data=image_data)
-#     db.session.add(asset)
-#     db.session.commit()
+    #create new Asset object
+    asset = Asset(image_data=image_data)
+    db.session.add(asset)
+    db.session.commit()
 
-#     return success_response(asset.serialize(), 201)
+    return success_response(asset.serialize(), 201)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
